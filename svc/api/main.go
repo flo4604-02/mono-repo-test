@@ -26,7 +26,7 @@ func main() {
 	// Simulate startup delay — healthcheck should fail during this window
 	var ready atomic.Bool
 	startupDelay := 3 * time.Second
-	log.Printf("api: starting up, will be ready in %s", startupDelay)
+	log.Printf("api: starting up, will be ready in hopefully %s", startupDelay)
 	go func() {
 		time.Sleep(startupDelay)
 		ready.Store(true)
