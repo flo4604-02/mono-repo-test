@@ -189,6 +189,28 @@ func main() {
 		})
 	})
 
+	// GET /timeout — sleeps for 16 minutes to exceed sentinel's 15-minute request timeout
+	mux.HandleFunc("GET /timeout", func(w http.ResponseWriter, r *http.Request) {
+		inflight.Add(1)
+		defer inflight.Add(-1)
+
+		duration := 16 * time.Minute
+		log.Printf("api: timeout test started, will take %s (sentinel limit is 15m)", duration)
+
+		select {
+		case <-time.After(duration):
+			shared.JSON(w, http.StatusOK, shared.Response{
+				Service: "api",
+				Status:  "ok",
+				Port:    port,
+				Message: fmt.Sprintf("completed after %s — sentinel should have timed out before this", duration),
+			})
+		case <-r.Context().Done():
+			log.Printf("api: timeout test cancelled after context done: %v", r.Context().Err())
+			return
+		}
+	})
+
 	// GET /env — dump all environment variables as pretty JSON
 	mux.HandleFunc("GET /env", func(w http.ResponseWriter, r *http.Request) {
 		envs := os.Environ()
