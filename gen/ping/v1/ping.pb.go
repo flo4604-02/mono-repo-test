@@ -117,6 +117,102 @@ func (x *PingResponse) GetProtocol() string {
 	return ""
 }
 
+type CountRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Count         int32                  `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CountRequest) Reset() {
+	*x = CountRequest{}
+	mi := &file_ping_v1_ping_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CountRequest) ProtoMessage() {}
+
+func (x *CountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ping_v1_ping_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CountRequest.ProtoReflect.Descriptor instead.
+func (*CountRequest) Descriptor() ([]byte, []int) {
+	return file_ping_v1_ping_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CountRequest) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type CountResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Number        int32                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Protocol      string                 `protobuf:"bytes,2,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CountResponse) Reset() {
+	*x = CountResponse{}
+	mi := &file_ping_v1_ping_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CountResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CountResponse) ProtoMessage() {}
+
+func (x *CountResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ping_v1_ping_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CountResponse.ProtoReflect.Descriptor instead.
+func (*CountResponse) Descriptor() ([]byte, []int) {
+	return file_ping_v1_ping_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CountResponse) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *CountResponse) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
 var File_ping_v1_ping_proto protoreflect.FileDescriptor
 
 const file_ping_v1_ping_proto_rawDesc = "" +
@@ -126,9 +222,15 @@ const file_ping_v1_ping_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"D\n" +
 	"\fPingResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12\x1a\n" +
-	"\bprotocol\x18\x02 \x01(\tR\bprotocol2D\n" +
+	"\bprotocol\x18\x02 \x01(\tR\bprotocol\"$\n" +
+	"\fCountRequest\x12\x14\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"C\n" +
+	"\rCountResponse\x12\x16\n" +
+	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x1a\n" +
+	"\bprotocol\x18\x02 \x01(\tR\bprotocol2\x80\x01\n" +
 	"\vPingService\x125\n" +
-	"\x04Ping\x12\x14.ping.v1.PingRequest\x1a\x15.ping.v1.PingResponse\"\x00B6Z4github.com/unkeyed/mono-repo-test/gen/ping/v1;pingv1b\x06proto3"
+	"\x04Ping\x12\x14.ping.v1.PingRequest\x1a\x15.ping.v1.PingResponse\"\x00\x12:\n" +
+	"\x05Count\x12\x15.ping.v1.CountRequest\x1a\x16.ping.v1.CountResponse\"\x000\x01B6Z4github.com/unkeyed/mono-repo-test/gen/ping/v1;pingv1b\x06proto3"
 
 var (
 	file_ping_v1_ping_proto_rawDescOnce sync.Once
@@ -142,16 +244,20 @@ func file_ping_v1_ping_proto_rawDescGZIP() []byte {
 	return file_ping_v1_ping_proto_rawDescData
 }
 
-var file_ping_v1_ping_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ping_v1_ping_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ping_v1_ping_proto_goTypes = []any{
-	(*PingRequest)(nil),  // 0: ping.v1.PingRequest
-	(*PingResponse)(nil), // 1: ping.v1.PingResponse
+	(*PingRequest)(nil),   // 0: ping.v1.PingRequest
+	(*PingResponse)(nil),  // 1: ping.v1.PingResponse
+	(*CountRequest)(nil),  // 2: ping.v1.CountRequest
+	(*CountResponse)(nil), // 3: ping.v1.CountResponse
 }
 var file_ping_v1_ping_proto_depIdxs = []int32{
 	0, // 0: ping.v1.PingService.Ping:input_type -> ping.v1.PingRequest
-	1, // 1: ping.v1.PingService.Ping:output_type -> ping.v1.PingResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: ping.v1.PingService.Count:input_type -> ping.v1.CountRequest
+	1, // 2: ping.v1.PingService.Ping:output_type -> ping.v1.PingResponse
+	3, // 3: ping.v1.PingService.Count:output_type -> ping.v1.CountResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -168,7 +274,7 @@ func file_ping_v1_ping_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ping_v1_ping_proto_rawDesc), len(file_ping_v1_ping_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

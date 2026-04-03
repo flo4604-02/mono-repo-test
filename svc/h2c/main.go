@@ -129,3 +129,22 @@ func (s *pingServer) Ping(ctx context.Context, req *connect.Request[pingv1.PingR
 		Protocol: "connect-rpc over h2c",
 	}), nil
 }
+
+func (s *pingServer) Count(ctx context.Context, req *connect.Request[pingv1.CountRequest], stream *connect.ServerStream[pingv1.CountResponse]) error {
+	count := req.Msg.Count
+	if count <= 0 {
+		count = 5
+	}
+	log.Printf("h2c: Connect-RPC Count called with count=%d", count)
+
+	for i := int32(1); i <= count; i++ {
+		if err := stream.Send(&pingv1.CountResponse{
+			Number:   i,
+			Protocol: "connect-rpc server-stream over h2c",
+		}); err != nil {
+			return err
+		}
+		time.Sleep(time.Second)
+	}
+	return nil
+}

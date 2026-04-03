@@ -13,6 +13,17 @@ message PingResponse {
   string protocol = 2;
 }
 
+message CountRequest {
+  int32 count = 1;
+}
+
+message CountResponse {
+  int32 number = 1;
+  string protocol = 2;
+}
+
 service PingService {
   rpc Ping(PingRequest) returns (PingResponse) {}
+  // Server-streaming: sends count messages, one per second
+  rpc Count(CountRequest) returns (stream CountResponse) {}
 }

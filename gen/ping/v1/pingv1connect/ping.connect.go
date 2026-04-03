@@ -35,11 +35,15 @@ const (
 const (
 	// PingServicePingProcedure is the fully-qualified name of the PingService's Ping RPC.
 	PingServicePingProcedure = "/ping.v1.PingService/Ping"
+	// PingServiceCountProcedure is the fully-qualified name of the PingService's Count RPC.
+	PingServiceCountProcedure = "/ping.v1.PingService/Count"
 )
 
 // PingServiceClient is a client for the ping.v1.PingService service.
 type PingServiceClient interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	// Server-streaming: sends count messages, one per second
+	Count(context.Context, *connect.Request[v1.CountRequest]) (*connect.ServerStreamForClient[v1.CountResponse], error)
 }
 
 // NewPingServiceClient constructs a client for the ping.v1.PingService service. By default, it uses
@@ -59,12 +63,19 @@ func NewPingServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(pingServiceMethods.ByName("Ping")),
 			connect.WithClientOptions(opts...),
 		),
+		count: connect.NewClient[v1.CountRequest, v1.CountResponse](
+			httpClient,
+			baseURL+PingServiceCountProcedure,
+			connect.WithSchema(pingServiceMethods.ByName("Count")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // pingServiceClient implements PingServiceClient.
 type pingServiceClient struct {
-	ping *connect.Client[v1.PingRequest, v1.PingResponse]
+	ping  *connect.Client[v1.PingRequest, v1.PingResponse]
+	count *connect.Client[v1.CountRequest, v1.CountResponse]
 }
 
 // Ping calls ping.v1.PingService.Ping.
@@ -72,9 +83,16 @@ func (c *pingServiceClient) Ping(ctx context.Context, req *connect.Request[v1.Pi
 	return c.ping.CallUnary(ctx, req)
 }
 
+// Count calls ping.v1.PingService.Count.
+func (c *pingServiceClient) Count(ctx context.Context, req *connect.Request[v1.CountRequest]) (*connect.ServerStreamForClient[v1.CountResponse], error) {
+	return c.count.CallServerStream(ctx, req)
+}
+
 // PingServiceHandler is an implementation of the ping.v1.PingService service.
 type PingServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	// Server-streaming: sends count messages, one per second
+	Count(context.Context, *connect.Request[v1.CountRequest], *connect.ServerStream[v1.CountResponse]) error
 }
 
 // NewPingServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -90,10 +108,18 @@ func NewPingServiceHandler(svc PingServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(pingServiceMethods.ByName("Ping")),
 		connect.WithHandlerOptions(opts...),
 	)
+	pingServiceCountHandler := connect.NewServerStreamHandler(
+		PingServiceCountProcedure,
+		svc.Count,
+		connect.WithSchema(pingServiceMethods.ByName("Count")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ping.v1.PingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PingServicePingProcedure:
 			pingServicePingHandler.ServeHTTP(w, r)
+		case PingServiceCountProcedure:
+			pingServiceCountHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -105,4 +131,8 @@ type UnimplementedPingServiceHandler struct{}
 
 func (UnimplementedPingServiceHandler) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ping.v1.PingService.Ping is not implemented"))
+}
+
+func (UnimplementedPingServiceHandler) Count(context.Context, *connect.Request[v1.CountRequest], *connect.ServerStream[v1.CountResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("ping.v1.PingService.Count is not implemented"))
 }
