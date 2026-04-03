@@ -101,11 +101,15 @@ func main() {
 		})
 	})
 
-	// Connect-RPC service
-	path, handler := pingv1connect.NewPingServiceHandler(&pingServer{port: port})
-	mux.Handle(path, handler)
+	// Connect-RPC service — registered on a separate mux to avoid pattern conflicts
+	connectPath, connectHandler := pingv1connect.NewPingServiceHandler(&pingServer{port: port})
 
-	h2cHandler := h2c.NewHandler(mux, &http2.Server{})
+	// Route Connect-RPC paths to the connect handler, everything else to the main mux
+	root := http.NewServeMux()
+	root.Handle(connectPath, connectHandler)
+	root.Handle("/", mux)
+
+	h2cHandler := h2c.NewHandler(root, &http2.Server{})
 
 	log.Printf("h2c: listening on :%s (HTTP/1.1 + h2c + Connect-RPC)", port)
 	if err := http.ListenAndServe(":"+port, h2cHandler); err != nil {
