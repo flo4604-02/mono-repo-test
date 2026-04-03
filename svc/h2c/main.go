@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/connect"
+	pingv1 "github.com/unkeyed/mono-repo-test/gen/ping/v1"
+	"github.com/unkeyed/mono-repo-test/gen/ping/v1/pingv1connect"
 	"github.com/unkeyed/mono-repo-test/pkg/shared"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -97,10 +101,27 @@ func main() {
 		})
 	})
 
+	// Connect-RPC service
+	path, handler := pingv1connect.NewPingServiceHandler(&pingServer{port: port})
+	mux.Handle(path, handler)
+
 	h2cHandler := h2c.NewHandler(mux, &http2.Server{})
 
-	log.Printf("h2c: listening on :%s (HTTP/1.1 + h2c)", port)
+	log.Printf("h2c: listening on :%s (HTTP/1.1 + h2c + Connect-RPC)", port)
 	if err := http.ListenAndServe(":"+port, h2cHandler); err != nil {
 		log.Fatal(err)
 	}
+}
+
+type pingServer struct {
+	pingv1connect.UnimplementedPingServiceHandler
+	port string
+}
+
+func (s *pingServer) Ping(ctx context.Context, req *connect.Request[pingv1.PingRequest]) (*connect.Response[pingv1.PingResponse], error) {
+	log.Printf("h2c: Connect-RPC Ping called with message=%q", req.Msg.Message)
+	return connect.NewResponse(&pingv1.PingResponse{
+		Message:  fmt.Sprintf("pong: %s", req.Msg.Message),
+		Protocol: "connect-rpc over h2c",
+	}), nil
 }
