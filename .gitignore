@@ -10,6 +10,7 @@
 /api
 /h2c
 /diskio
+/stream-test
 
 # Test binary, built with `go test -c`
 *.test

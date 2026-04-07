@@ -25,9 +25,9 @@ func main() {
 		port = "3458"
 	}
 
-	scratchDir := os.Getenv("SCRATCH_DIR")
+	scratchDir := os.Getenv("UNKEY_EPHEMERAL_DISK_PATH")
 	if scratchDir == "" {
-		scratchDir = "/scratch"
+		scratchDir = "/data"
 	}
 
 	var ready atomic.Bool
