@@ -63,8 +63,23 @@ func main() {
 	}()
 
 	mux := http.NewServeMux()
+	
+	
+	
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		inflight.Add(1)
+		defer inflight.Add(-1)
+
+		shared.JSON(w, http.StatusOK, shared.Response{
+			Service: "api",
+			Status:  "ok",
+			Port:    port,
+			Message: fmt.Sprintf("request #%d | in-flight: %d", rand.Intn(10000), inflight.Load()),
+		})
+	})
+	
+	mux.HandleFunc("GET /region", func(w http.ResponseWriter, r *http.Request) {
 		inflight.Add(1)
 		defer inflight.Add(-1)
 
@@ -107,14 +122,7 @@ func main() {
 
 	// POST /healthz/fail — make healthcheck start failing (triggers liveness probe restart)
 	mux.HandleFunc("POST /healthz/fail", func(w http.ResponseWriter, r *http.Request) {
-		forceFail.Store(true)
-		log.Println("api: healthcheck toggled to FAIL")
-		shared.JSON(w, http.StatusOK, shared.Response{
-			Service: "api",
-			Status:  "ok",
-			Port:    port,
-			Message: "healthcheck will now fail — liveness probe should restart this container",
-		})
+		w.Write([]byte(os.Getenv("UNKEY_REGION")))
 	})
 
 	// POST /healthz/recover — make healthcheck pass again
