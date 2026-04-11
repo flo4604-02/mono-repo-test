@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY . .
 
+RUN sleep 120
+
 RUN CGO_ENABLED=0 go build -o /service ./svc/h2c
 
 FROM alpine:3.21
