@@ -271,6 +271,50 @@ func main() {
 		})
 	})
 
+	// GET /stream — SSE endpoint that sends JSON events every second (readable in sentinel logs)
+	mux.HandleFunc("GET /stream", func(w http.ResponseWriter, r *http.Request) {
+		inflight.Add(1)
+		defer inflight.Add(-1)
+
+		count := 10
+		if c := r.URL.Query().Get("count"); c != "" {
+			if n, err := fmt.Sscanf(c, "%d", &count); n == 0 || err != nil {
+				count = 10
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.WriteHeader(http.StatusOK)
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		for i := 1; i <= count; i++ {
+			data, _ := json.Marshal(map[string]any{
+				"event":   i,
+				"total":   count,
+				"service": "api",
+				"port":    port,
+				"message": fmt.Sprintf("streaming event %d of %d", i, count),
+			})
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+
+			if i < count {
+				select {
+				case <-time.After(1 * time.Second):
+				case <-r.Context().Done():
+					return
+				}
+			}
+		}
+	})
+
 	log.Printf("api: listening on :%s", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal(err)

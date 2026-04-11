@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -99,6 +100,48 @@ func main() {
 			Status:  "healthy",
 			Port:    port,
 		})
+	})
+
+	// GET /stream — SSE endpoint that sends readable JSON events (for testing sentinel body logging)
+	mux.HandleFunc("GET /stream", func(w http.ResponseWriter, r *http.Request) {
+		inflight.Add(1)
+		defer inflight.Add(-1)
+
+		count := 10
+		if c := r.URL.Query().Get("count"); c != "" {
+			fmt.Sscanf(c, "%d", &count)
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.WriteHeader(http.StatusOK)
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		for i := 1; i <= count; i++ {
+			data, _ := json.Marshal(map[string]any{
+				"event":   i,
+				"total":   count,
+				"service": "h2c",
+				"port":    port,
+				"message": fmt.Sprintf("streaming event %d of %d", i, count),
+			})
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+
+			if i < count {
+				select {
+				case <-time.After(1 * time.Second):
+				case <-r.Context().Done():
+					return
+				}
+			}
+		}
 	})
 
 	// Connect-RPC service — registered on a separate mux to avoid pattern conflicts

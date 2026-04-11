@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	host := "https://munch-local.unkey.local"
+	host := "https://local-api-local.unkey.local"
 	if h := os.Getenv("HOST"); h != "" {
 		host = h
 	}
@@ -37,7 +37,7 @@ func main() {
 			},
 		},
 		host,
-		connect.WithGRPC(),
+		connect.WithProtoJSON(),
 	)
 
 	fmt.Printf("streaming %d messages from %s ...\n\n", count, host)
