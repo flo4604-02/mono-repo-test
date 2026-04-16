@@ -26,7 +26,7 @@ func main() {
 	// Simulate startup delay — healthcheck should fail during this window
 	var ready atomic.Bool
 	startupDelay := 3 * time.Second
-	log.Printf("api: starting up, will be ready in hopefully %s", startupDelay)
+	log.Printf("api: starting up, will be ready in %s", startupDelay)
 	go func() {
 		time.Sleep(startupDelay)
 		ready.Store(true)
@@ -74,6 +74,10 @@ func main() {
 			Port:    port,
 			Message: fmt.Sprintf("request #%d | in-flight: %d", rand.Intn(10000), inflight.Load()),
 		})
+	})
+
+	mux.HandleFunc("GET /region", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(os.Getenv("UNKEY_REGION")))
 	})
 
 	// Healthcheck endpoint — fails during startup and when toggled
@@ -189,6 +193,28 @@ func main() {
 		})
 	})
 
+	// GET /timeout — sleeps for 16 minutes to exceed sentinel's 15-minute request timeout
+	mux.HandleFunc("GET /timeout", func(w http.ResponseWriter, r *http.Request) {
+		inflight.Add(1)
+		defer inflight.Add(-1)
+
+		duration := 16 * time.Minute
+		log.Printf("api: timeout test started, will take %s (sentinel limit is 15m)", duration)
+
+		select {
+		case <-time.After(duration):
+			shared.JSON(w, http.StatusOK, shared.Response{
+				Service: "api",
+				Status:  "ok",
+				Port:    port,
+				Message: fmt.Sprintf("completed after %s — sentinel should have timed out before this", duration),
+			})
+		case <-r.Context().Done():
+			log.Printf("api: timeout test cancelled after context done: %v", r.Context().Err())
+			return
+		}
+	})
+
 	// GET /env — dump all environment variables as pretty JSON
 	mux.HandleFunc("GET /env", func(w http.ResponseWriter, r *http.Request) {
 		envs := os.Environ()
@@ -243,6 +269,50 @@ func main() {
 			Port:    port,
 			Message: fmt.Sprintf("reached worker at %s — got HTTP %d — network isolation is BROKEN", workerURL, resp.StatusCode),
 		})
+	})
+
+	// GET /stream — SSE endpoint that sends JSON events every second (readable in sentinel logs)
+	mux.HandleFunc("GET /stream", func(w http.ResponseWriter, r *http.Request) {
+		inflight.Add(1)
+		defer inflight.Add(-1)
+
+		count := 10
+		if c := r.URL.Query().Get("count"); c != "" {
+			if n, err := fmt.Sscanf(c, "%d", &count); n == 0 || err != nil {
+				count = 10
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.WriteHeader(http.StatusOK)
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		for i := 1; i <= count; i++ {
+			data, _ := json.Marshal(map[string]any{
+				"event":   i,
+				"total":   count,
+				"service": "api",
+				"port":    port,
+				"message": fmt.Sprintf("streaming event %d of %d", i, count),
+			})
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+
+			if i < count {
+				select {
+				case <-time.After(1 * time.Second):
+				case <-r.Context().Done():
+					return
+				}
+			}
+		}
 	})
 
 	log.Printf("api: listening on :%s", port)
